@@ -208,12 +208,12 @@ namespace SEWConverter
             var r = 0;
             for (int i = 0; i < audioData.Length; i++)
             {
-                var encNibble = EncodeNibble(audioData[i]);
-                if ((_header?.loopStart ?? -1) == i && channel >= 0)
+                if ((_header?.loopStart + 0x20 ?? -1) == i && channel >= 0)
                 {
-                    _loopPredSample[channel] = _predSample >> 12;
+                    _loopPredSample[channel] = _predSample;
                     _loopIndex[channel] = _index;
                 }
+                var encNibble = EncodeNibble(audioData[i]);
 
                 if (!s)
                 {
@@ -271,6 +271,9 @@ namespace SEWConverter
 
         private byte[] CreateLoopData(int[] audioData)
         {
+            if (_header.loopStart < 0 && _header.loopEnd < 0)
+                return new byte[12 * 4];
+
             int[] loopData = new int[12];
             for (int i = 0; i < _header.channelCount; i++)
             {
@@ -287,16 +290,19 @@ namespace SEWConverter
 
         private byte[] CreateCrossfadedData(int[] audioData)
         {
+            if (_header.loopStart < 0 && _header.loopEnd < 0)
+                return new byte[6 * 32 * 4];
+
             int[] crossfadedData = new int[6 * 32];
 
             //Crossfading
-            for (int i = 0; i < _header.channelCount; i++)
-                for (int j = 0; j < 32; j++)
+            for (int j = 0; j < 32; j++)
+                for (int i = 0; i < _header.channelCount; i++)
                 {
                     var loopStartSample = audioData[(_header.loopStart + j) * _header.channelCount + i];
                     var loopEndSample = audioData[(_header.loopEnd + j) * _header.channelCount + i];
 
-                    crossfadedData[i * 32 + j] = ((loopStartSample >> 12) * j + (loopEndSample >> 12) * (32 - j)) / 32;
+                    crossfadedData[j * _header.channelCount + i] = ((loopStartSample >> 12) * j + (loopEndSample >> 12) * (32 - j)) / 32;
                 }
 
             var ms = new MemoryStream();
