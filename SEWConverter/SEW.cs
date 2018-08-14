@@ -301,7 +301,7 @@ namespace SEWConverter
                         var loopStartSample = audioData[(_header.loopStart + j) * _header.channelCount + i];
                         var loopEndSample = audioData[(_header.loopEnd + j) * _header.channelCount + i];
 
-                        crossfadedData[j * _header.channelCount + i] = (int)Math.Ceiling(((loopStartSample >> 12) * j + (loopEndSample >> 12) * (32 - j)) / 32.0);
+                        crossfadedData[j * _header.channelCount + i] = (loopEndSample >> 12) + ((loopStartSample >> 12) - (loopEndSample >> 12)) * j / 32;
                     }
                 }
 
@@ -325,8 +325,8 @@ namespace SEWConverter
                     channelData.Add(audioData.Where((s, i) => i % 2 == 1).ToArray());
 
                     var encoded = new List<int[]>();
-                    encoded.Add(Encode(channelData[0], 0).SelectMany((i) => new[] { i / 16, i % 16 }).ToArray());
-                    encoded.Add(Encode(channelData[1], 1).SelectMany((i) => new[] { i / 16, i % 16 }).ToArray());
+                    encoded.Add(Encode(channelData[0], 0).SelectMany((i) => new[] { i / 16, i % 16 }).Take(channelData[0].Length).ToArray());
+                    encoded.Add(Encode(channelData[1], 1).SelectMany((i) => new[] { i / 16, i % 16 }).Take(channelData[1].Length).ToArray());
 
                     for (int i = 0; i < encoded[0].Length; i++)
                     {
