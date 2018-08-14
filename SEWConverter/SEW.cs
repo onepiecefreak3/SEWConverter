@@ -119,15 +119,16 @@ namespace SEWConverter
                 loopEnd = loopEnd
             };
 
+            var time = DateTime.UtcNow;
             _footer = new SEWFooter
             {
-                year = (short)DateTime.Today.Year,
-                month = (byte)DateTime.Today.Month,
-                day = (byte)DateTime.Today.Day,
+                year = (short)time.Year,
+                month = (byte)time.Month,
+                day = (byte)time.Day,
 
-                hour = (byte)DateTime.Today.Hour,
-                minute = (byte)DateTime.Today.Minute,
-                second = (byte)DateTime.Today.Second
+                hour = (byte)time.Hour,
+                minute = (byte)time.Minute,
+                second = (byte)time.Second
             };
         }
         #endregion
@@ -164,7 +165,7 @@ namespace SEWConverter
 
                 var input = br.ReadBytes(_header.footerOffset - _header.dataOffset);
                 if (_header.channelCount <= 1)
-                    foreach (var n in input.SelectMany(i => new[] { i / 16, i % 16 }))
+                    foreach (var n in input.SelectMany(i => new[] { i / 16, i % 16 }).Take(_header.sampleCount))
                         result.Add(DecodeNibble(n));
                 else
                 {
@@ -300,7 +301,7 @@ namespace SEWConverter
                         var loopStartSample = audioData[(_header.loopStart + j) * _header.channelCount + i];
                         var loopEndSample = audioData[(_header.loopEnd + j) * _header.channelCount + i];
 
-                        crossfadedData[j * _header.channelCount + i] = ((loopStartSample >> 12) * j + (loopEndSample >> 12) * (32 - j)) / 32;
+                        crossfadedData[j * _header.channelCount + i] = (int)Math.Ceiling(((loopStartSample >> 12) * j + (loopEndSample >> 12) * (32 - j)) / 32.0);
                     }
                 }
 
